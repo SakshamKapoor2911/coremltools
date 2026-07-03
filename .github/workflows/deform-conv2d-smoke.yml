@@ -54,42 +54,42 @@ jobs:
           (
             cd /tmp
             python - <<'PY'
-import pathlib
-import shutil
-import os
+          import os
+          import pathlib
+          import shutil
 
-import coremltools
+          import coremltools
 
-wheel_pkg = pathlib.Path(coremltools.__file__).resolve().parent
-source_pkg = pathlib.Path(os.environ["GITHUB_WORKSPACE"]) / "coremltools"
-for rel in [
-    "libcoremlpython.so",
-    "libmilstoragepython.so",
-    "libmodelpackage.so",
-]:
-    shutil.copy2(wheel_pkg / rel, source_pkg / rel)
+          wheel_pkg = pathlib.Path(coremltools.__file__).resolve().parent
+          source_pkg = pathlib.Path(os.environ["GITHUB_WORKSPACE"]) / "coremltools"
+          for rel in [
+              "libcoremlpython.so",
+              "libmilstoragepython.so",
+              "libmodelpackage.so",
+          ]:
+              shutil.copy2(wheel_pkg / rel, source_pkg / rel)
 
-kmeans_src = next((wheel_pkg / "_deps" / "kmeans1d").glob("_core*.so"))
-kmeans_dst = source_pkg / "_deps" / "kmeans1d" / kmeans_src.name
-kmeans_dst.parent.mkdir(parents=True, exist_ok=True)
-shutil.copy2(kmeans_src, kmeans_dst)
-print(f"copied Core ML binaries from {wheel_pkg} to {source_pkg}")
-PY
+          kmeans_src = next((wheel_pkg / "_deps" / "kmeans1d").glob("_core*.so"))
+          kmeans_dst = source_pkg / "_deps" / "kmeans1d" / kmeans_src.name
+          kmeans_dst.parent.mkdir(parents=True, exist_ok=True)
+          shutil.copy2(kmeans_src, kmeans_dst)
+          print(f"copied Core ML binaries from {wheel_pkg} to {source_pkg}")
+          PY
           )
           python -m pip install -e .
 
       - name: Verify native Core ML bindings
         run: |
           python - <<'PY'
-import coremltools as ct
-from coremltools.converters.mil.backend.mil.load import BlobWriter
-from coremltools.models.utils import _macos_version
+          import coremltools as ct
+          from coremltools.converters.mil.backend.mil.load import BlobWriter
+          from coremltools.models.utils import _macos_version
 
-print("coremltools", ct.__version__)
-print("macOS", _macos_version())
-print("BlobWriter available", BlobWriter is not None)
-assert BlobWriter is not None
-PY
+          print("coremltools", ct.__version__)
+          print("macOS", _macos_version())
+          print("BlobWriter available", BlobWriter is not None)
+          assert BlobWriter is not None
+          PY
 
       - name: Run deform_conv2d native prediction tests
         env:
