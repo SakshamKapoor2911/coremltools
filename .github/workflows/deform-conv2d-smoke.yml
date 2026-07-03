@@ -91,6 +91,8 @@ jobs:
           assert BlobWriter is not None
           PY
 
-      - name: Run deform_conv2d fp32 native diagnostic
+      - name: Run deform_conv2d native prediction tests
+        env:
+          PYMIL_TEST_TARGETS: mlprogram
         run: |
-          python .github/scripts/deform_conv2d_fp32_diagnostic.py
+          python -m pytest coremltools/converters/mil/frontend/torch/test/test_torch_ops.py::TestDeformConv2d -q --tb=short
