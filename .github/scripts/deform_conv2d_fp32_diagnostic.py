@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torchvision
 
@@ -142,6 +144,9 @@ CONFIGS = [
 
 
 def main():
+    os.environ.setdefault(
+        "PYTEST_CURRENT_TEST", "deform_conv2d_fp32_diagnostic::main (call)"
+    )
     torch.manual_seed(30)
     for frontend in (TorchFrontend.TORCHSCRIPT, TorchFrontend.TORCHEXPORT):
         for index, config in enumerate(CONFIGS):
