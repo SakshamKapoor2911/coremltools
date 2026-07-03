@@ -34,7 +34,7 @@ jobs:
           python -m pytest coremltools/converters/mil/frontend/torch/test/test_torch_ops.py::TestDeformConv2d -q --tb=short
 
   deform-conv2d-macos:
-    runs-on: macos-13
+    runs-on: macos-latest
     timeout-minutes: 45
 
     steps:
