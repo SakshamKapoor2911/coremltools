@@ -13598,7 +13598,6 @@ class TestDeformConv2d(TorchBaseTest):
                 source="pytorch",
                 convert_to="milinternal",
                 inputs=converter_inputs,
-                minimum_deployment_target=ct.target.iOS16,
             )
             self._assert_deform_conv2d_ops(prog)
             return
@@ -13613,7 +13612,6 @@ class TestDeformConv2d(TorchBaseTest):
                 input_data,
                 backend=backend,
                 compute_unit=compute_unit,
-                minimum_deployment_target=ct.target.iOS16,
             )
             self._assert_deform_conv2d_ops(mlmodel._mil_program)
             return
@@ -13624,7 +13622,6 @@ class TestDeformConv2d(TorchBaseTest):
             input_as_shape=False,
             backend=backend,
             compute_unit=compute_unit,
-            minimum_deployment_target=ct.target.iOS16,
             atol=1e-4,
             rtol=1e-4,
             frontend=frontend,
