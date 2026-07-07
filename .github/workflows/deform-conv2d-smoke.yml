@@ -16,8 +16,6 @@ jobs:
       matrix:
         runner:
           - macos-14
-          - macos-15
-          - macos-latest
         frontend:
           - TORCHSCRIPT
           - TORCHEXPORT
