@@ -9172,15 +9172,12 @@ def torchvision_deform_conv2d(context, node):
                 coord_x = mb.add(x=base_x, y=offset_x)
                 coord_y = mb.add(x=coord_y, y=1.0)
                 coord_x = mb.add(x=coord_x, y=1.0)
-                hpad = _torchvision_deform_conv2d_require_static_dim(
-                    x_group.shape[2], "padded input height"
-                )
-                wpad = _torchvision_deform_conv2d_require_static_dim(
-                    x_group.shape[3], "padded input width"
-                )
-                coord_y = mb.real_div(x=coord_y, y=float(hpad - 1))
+                x_group_shape = mb.shape(x=x_group)
+                hpad = mb.cast(x=_utils.pymil_value_at(x_group_shape, 2), dtype="fp32")
+                wpad = mb.cast(x=_utils.pymil_value_at(x_group_shape, 3), dtype="fp32")
+                coord_y = mb.real_div(x=coord_y, y=mb.sub(x=hpad, y=1.0))
+                coord_x = mb.real_div(x=coord_x, y=mb.sub(x=wpad, y=1.0))
                 coord_y = mb.sub(x=mb.mul(x=coord_y, y=2.0), y=1.0)
-                coord_x = mb.real_div(x=coord_x, y=float(wpad - 1))
                 coord_x = mb.sub(x=mb.mul(x=coord_x, y=2.0), y=1.0)
                 coordinates = mb.stack(values=[coord_x, coord_y], axis=-1)
                 sampled = mb.resample(
