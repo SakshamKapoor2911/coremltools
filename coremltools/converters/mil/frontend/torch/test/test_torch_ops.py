@@ -3310,6 +3310,129 @@ class TestUpsample(TorchBaseTest):
                 if layer.WhichOneof("layer") == "upsample":
                     assert len(layer.upsample.fractionalScalingFactor) == 0
 
+    @staticmethod
+    def _xfail_if_torch_export_rejects_trunc(export_fn):
+        """
+        ``F.interpolate(..., scale_factor=float, recompute_scale_factor=True)``
+        over a dynamic shape decomposes into ``sym_float -> mul -> trunc`` nodes.
+        Some torch versions reject ``trunc`` in their export verifier
+        (SpecViolationError); the coremltools side of this lowering cannot be
+        exercised then, so skip instead of failing.
+        """
+        try:
+            return export_fn()
+        except Exception as e:  # noqa: BLE001
+            msg = str(e)
+            if "trunc" in msg or "SpecViolationError" in msg:
+                pytest.xfail(
+                    "torch.export verifier rejects the trunc node on this torch version"
+                )
+            raise
+
+    @pytest.mark.parametrize(
+        "compute_unit, backend, frontend",
+        itertools.product(compute_units, backends, TORCH_EXPORT_BASED_FRONTENDS),
+    )
+    def test_interpolate_nearest2d_with_float_scale_dynamic(
+        self, compute_unit, backend, frontend
+    ):
+        if frontend == TorchFrontend.EXECUTORCH:
+            pytest.xfail("executorch incorrectly propagates dynamic shape")
+
+        input_shape = (1, 3, 10, 10)
+
+        class Model(nn.Module):
+            def __init__(self, scale_factor):
+                super().__init__()
+                self.scale_factor = scale_factor
+
+            def forward(self, args):
+                return nn.functional.interpolate(
+                    args,
+                    scale_factor=self.scale_factor,
+                    mode="nearest",
+                    recompute_scale_factor=True,
+                )
+
+        model = Model((2.5, 1.5))
+
+        upper_bound_coreml = 20 if backend[0] == "mlprogram" else -1
+        upper_bound_torch = None if upper_bound_coreml == -1 else upper_bound_coreml
+        height = RangeDim(upper_bound=upper_bound_coreml)
+        width = RangeDim(upper_bound=upper_bound_coreml)
+        converter_input_type = [TensorType(shape=(1, 3, height, width), dtype=np.float32)]
+        torch_export_dynamic_shapes = {
+            "args": {
+                2: torch.export.Dim(name="height", max=upper_bound_torch),
+                3: torch.export.Dim(name="width", max=upper_bound_torch),
+            }
+        }
+
+        self._xfail_if_torch_export_rejects_trunc(
+            lambda: self.run_compare_torch(
+                input_shape,
+                model,
+                frontend=frontend,
+                backend=backend,
+                compute_unit=compute_unit,
+                converter_input_type=converter_input_type,
+                torch_export_dynamic_shapes=torch_export_dynamic_shapes,
+            )
+        )
+
+    @pytest.mark.parametrize(
+        "compute_unit, backend, frontend",
+        itertools.product(compute_units, backends, TORCH_EXPORT_BASED_FRONTENDS),
+    )
+    def test_interpolate_bilinear2d_with_float_scale_dynamic(
+        self, compute_unit, backend, frontend
+    ):
+        if frontend == TorchFrontend.EXECUTORCH:
+            pytest.xfail("executorch incorrectly propagates dynamic shape")
+
+        input_shape = (1, 3, 9, 22)
+
+        class Model(nn.Module):
+            def __init__(self, scale_factor, align_corners):
+                super().__init__()
+                self.scale_factor = scale_factor
+                self.align_corners = align_corners
+
+            def forward(self, args):
+                return nn.functional.interpolate(
+                    args,
+                    scale_factor=self.scale_factor,
+                    mode="bilinear",
+                    align_corners=self.align_corners,
+                    recompute_scale_factor=True,
+                )
+
+        model = Model((2.5, 3.5), False)
+
+        upper_bound_coreml = 30 if backend[0] == "mlprogram" else -1
+        upper_bound_torch = None if upper_bound_coreml == -1 else upper_bound_coreml
+        height = RangeDim(upper_bound=upper_bound_coreml)
+        width = RangeDim(upper_bound=upper_bound_coreml)
+        converter_input_type = [TensorType(shape=(1, 3, height, width), dtype=np.float32)]
+        torch_export_dynamic_shapes = {
+            "args": {
+                2: torch.export.Dim(name="height", max=upper_bound_torch),
+                3: torch.export.Dim(name="width", max=upper_bound_torch),
+            }
+        }
+
+        self._xfail_if_torch_export_rejects_trunc(
+            lambda: self.run_compare_torch(
+                input_shape,
+                model,
+                frontend=frontend,
+                backend=backend,
+                compute_unit=compute_unit,
+                converter_input_type=converter_input_type,
+                torch_export_dynamic_shapes=torch_export_dynamic_shapes,
+            )
+        )
+
 
 class TestEmpty(TorchBaseTest):
     @pytest.mark.parametrize(
