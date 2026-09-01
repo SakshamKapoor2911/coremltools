@@ -3310,35 +3310,13 @@ class TestUpsample(TorchBaseTest):
                 if layer.WhichOneof("layer") == "upsample":
                     assert len(layer.upsample.fractionalScalingFactor) == 0
 
-    @staticmethod
-    def _xfail_if_torch_export_rejects_trunc(export_fn):
-        """
-        ``F.interpolate(..., scale_factor=float, recompute_scale_factor=True)``
-        over a dynamic shape decomposes into ``sym_float -> mul -> trunc`` nodes.
-        Some torch versions reject ``trunc`` in their export verifier
-        (SpecViolationError); the coremltools side of this lowering cannot be
-        exercised then, so skip instead of failing.
-        """
-        try:
-            return export_fn()
-        except Exception as e:  # noqa: BLE001
-            msg = str(e)
-            if "trunc" in msg or "SpecViolationError" in msg:
-                pytest.xfail(
-                    "torch.export verifier rejects the trunc node on this torch version"
-                )
-            raise
-
     @pytest.mark.parametrize(
         "compute_unit, backend, frontend",
-        itertools.product(compute_units, backends, TORCH_EXPORT_BASED_FRONTENDS),
+        itertools.product(compute_units, backends, [TorchFrontend.TORCHEXPORT]),
     )
     def test_interpolate_nearest2d_with_float_scale_dynamic(
         self, compute_unit, backend, frontend
     ):
-        if frontend == TorchFrontend.EXECUTORCH:
-            pytest.xfail("executorch incorrectly propagates dynamic shape")
-
         input_shape = (1, 3, 10, 10)
 
         class Model(nn.Module):
@@ -3368,28 +3346,23 @@ class TestUpsample(TorchBaseTest):
             }
         }
 
-        self._xfail_if_torch_export_rejects_trunc(
-            lambda: self.run_compare_torch(
-                input_shape,
-                model,
-                frontend=frontend,
-                backend=backend,
-                compute_unit=compute_unit,
-                converter_input_type=converter_input_type,
-                torch_export_dynamic_shapes=torch_export_dynamic_shapes,
-            )
+        self.run_compare_torch(
+            input_shape,
+            model,
+            frontend=frontend,
+            backend=backend,
+            compute_unit=compute_unit,
+            converter_input_type=converter_input_type,
+            torch_export_dynamic_shapes=torch_export_dynamic_shapes,
         )
 
     @pytest.mark.parametrize(
         "compute_unit, backend, frontend",
-        itertools.product(compute_units, backends, TORCH_EXPORT_BASED_FRONTENDS),
+        itertools.product(compute_units, backends, [TorchFrontend.TORCHEXPORT]),
     )
     def test_interpolate_bilinear2d_with_float_scale_dynamic(
         self, compute_unit, backend, frontend
     ):
-        if frontend == TorchFrontend.EXECUTORCH:
-            pytest.xfail("executorch incorrectly propagates dynamic shape")
-
         input_shape = (1, 3, 9, 22)
 
         class Model(nn.Module):
@@ -3421,16 +3394,14 @@ class TestUpsample(TorchBaseTest):
             }
         }
 
-        self._xfail_if_torch_export_rejects_trunc(
-            lambda: self.run_compare_torch(
-                input_shape,
-                model,
-                frontend=frontend,
-                backend=backend,
-                compute_unit=compute_unit,
-                converter_input_type=converter_input_type,
-                torch_export_dynamic_shapes=torch_export_dynamic_shapes,
-            )
+        self.run_compare_torch(
+            input_shape,
+            model,
+            frontend=frontend,
+            backend=backend,
+            compute_unit=compute_unit,
+            converter_input_type=converter_input_type,
+            torch_export_dynamic_shapes=torch_export_dynamic_shapes,
         )
 
 
